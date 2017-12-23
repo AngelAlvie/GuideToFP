@@ -39,47 +39,19 @@ A computer follows a series of instructions, or a procedure, to "compute" a solu
 Before the intuition behind "effective computabilty" was formalized, the 20th century mathematician David Hilbert posed the following problem:
 * ` Is there an algorithm which given a particular proposition, decided if such a statement is true or false?`
 
-Such a machine would simply put mathematicians out of business. If such a procedure existed, then we could replace mathematicians with computers, and just prove all of mathematics with such an algorithm. However, before we could even describe such a procedure, we need to have a good way of representing procedures in general. 
+Such a machine would simply put mathematicians out of business. If such a procedure existed, then we could replace mathematicians with computers, and just prove all of mathematics by iterating over all possible propositions. However, before we could even describe such a procedure, we need to have a good way of representing procedures in general. 
 
 Thus the race was on to formalize the intuition of "effective computability". Even though such an algorithm is impossible (Hence why we still have mathematicians, see Gödel's Incompleteness Theorem), this problem had prompted the development of the first formal methods in computing.
 
 Two major methods were developed by the mathematicians Alan Turing, and Alonzo Church.
 
-The first of which, uses mathematical functions as a basis for computing. This was Alonzo Church's famed "lambda calculus", which is often considered the first programming language, and as certainly the first functional programming language. 
+The first that was discovered, uses mathematical functions as a basis for computing. This was Alonzo Church's "lambda calculus", which is considered the first programming language, and is certainly the first functional programming language. I will talk more extensively about the lambda calculus in the next chapter, and use it as an opportunity to introduce some functional programming concepts. 
 
-### Mathematical Functions
+The second method that was discovered, was the generalization of the concept of a "state machine". This version of computation suggested by Alan Turing, showed that computations were reducible to manipulating the state of some memory device. Turing used an "infinitely long tape" with ones and zeros as an example of his general purpose computer, now referred to as a "turing machine" in his honor.
 
-What are the properties of a function?
+Turing soon after proved that both the lambda calculus and the turing machine were capable of expressing the same types of computations, that is to say that anything that can be represented on a turing machine, can be represented in the lambda calculus and vice a versa. This result is the Church-Turing Thesis, and is at the heart of computing. You might consider more mainstream languages such as C and Java as __imperative languages__, where programs are composed entirely of __statements__ that modify the __state__ of the program. However, the church-turing thesis shows that anything you could do in an imperative, state based language, can also be done in a __declarative language__, where programs evaluate __expressions__ that equate describing what a program should do instead of how it should be done, which is often the focus of imperative code. This allows functional programmers to worry less about implementation details, and stay focused on the high level organization of code.
 
-### Lambda Calculus
-
-Church made one insight that gave Lambda Calculus the power it has. He realized that functions can serve as parameters of another function, and can be returned by another function:
-
-```Haskell
-let f(x) = g where g(y) = x
-```
-In this example, then function `f` takes a parameter `x` and returns a function `g`, which ignores it's input, `y`. 
-
-To make this process more concise, Church used the `λ` to denote the creation of a function:
-```Haskell
-let I = λx.x
-```
-`I` is the identity function, it has one parameter, and returns itself.
-```Haskell
-let F = λx.(λy.x)
-```
-The lambda denotes the beginning of the parameters of the function `f`. the `.` denotes the beginning of the body of the function. A function that squares a number might be defined like so:
-```Haskell
-let F = λx. x * x
-```
+You might hear that functional programming is a style of programming. But to say that this is a style of programming would be like saying that Object Oriented Programming is a style of programming. "Style" implies choice, however in a language like Java, everything is an object. Likewise, Haskell is considered a "purely functional" programming language, and thus the only "style" of programming that matters is functional. The "style" way of talking only makes sense in context of multi-paradigm languages such as Python and JavaScript. Even so, considering it to be a "style" strips it of most of this important context. More accurately, functional programming is a paradigm of computing, where a paradigm is a methodology for achieving a goal by applying specific techniques.
 
 
-
-You might hear that functional programming is a style of programming.
-
-More accurately, functional programming is a paradigm of computing. A paradigm is a methodology for achieving a goal by using a particular pattern.
-
-tail call recursion - parameterizing state to replace iterative with functions.
-
-split in mathematics - in math you look for proofs
-                     - in computer science, you study computing "methods" (algorithms, procedures, functions,)
+With these two models of computing now fully realized, it was apparent that computing was no longer just mathematics. Mathematics emphasizes proving propositions, whereas computing is the study of "methods", which we refer to interchangeably as algorithms, procedures and functions.
