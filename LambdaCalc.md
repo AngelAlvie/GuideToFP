@@ -14,6 +14,7 @@ You might see that when simply calling `h(4)`, we are expressing the result of c
 
 Alonzo Church made one insight that gave Lambda Calculus the power it has. He realized that functions can serve as mappings on the set of functions itself. This means that a function might be regarded as a parameter of another function, and might return another function as a result:
 
+
 ```Haskell
 let t(x) = g where g(y) = x
 ```
@@ -360,8 +361,172 @@ length    = λlist.(isNil list) 0
                                    )
                                ) 
 ```
-it must therefore follow that `length = Y length'`
+it must therefore follow that `length = Y length'`. Using this new tool, we can write plenty more recursive functions. here's a function that returns the sum of all the numbers in a list:
+```
+sum' = λf.λlist.(isNil list) 0 (add (head list) (f (tail list)))
+sum = Y sum'
+```
+`sum'` has the same basic structure as `length'`, except we replace `1` with the current `head` of the list. Let's try taking the `product` of all the elements in a list:
+```
+product' = λf.λlist.(isNil list) 1 (mult (head list) (f (tail list)))
+product = Y product'
+```
+I promised you that we could implement division. We can almost do division. we first need to be able to answer boolean questions about numbers.
+
+### Predicates
+A predicate is a propostion that is defined on an arbitrary number. Here are examples of predicates in ordinary mathematics:
+
+* Even(n) = 'n is an even number'
+* Odd(n) = 'n is an odd number'
+* Prime(p) = 'p is prime'
+* IsZero(x) = x is zero
+* a < b = 'a is less than b'
+* a == b = 'a is numerically equal to b'
+
+These functions take a number, and return a boolean. We can define some comparisons quite easily:
+
+```
+isZero = λn. n (λf.false) true
+```
+If `n` is any number besides zero, then our church encoding will return `false`, but since our encoding of zero never calls the `(λf.false)` function, we can will return `true`.
+
+Once we have `isZero`, We can define the condition: `n` "less than or equal to" `m`, which I will denote using `LEQ`:
+```
+LEQ = λn.λm. isZero (sub m n)
+```
+The rest of the comparisons follow from this:
+```
+GT = λn.λm. not (LEQ n m)
+EQ = λn.λm. and (LEQ n m) (LEQ m n)
+LT = λn.λm. and (LEQ n m) (not (EQ m n))
+```
+
+I think we are now ready to define `division`, and more interesting functions like `factorial` and the `minimum` and `maximum` of a list.
+
+The division theorem states that for any numbers `n` and `m`, there exists a unique representation of `n` such that `n = q * m + r` for some quotient `q` and remainder `r`. we can store all of these pieces in our partial division function:
+```
+division' = λf.λm.λr.λq. (LT r m) (pair q r) (f m (sub r m) (succ q)) 
+division = Y division'
+```
+Our division function should repeatedly subtract `r` from `m` until we have an `r` less than `m`. Once this condition is reached, we can return a pair of the current `r` value and `q`, where `q` is incremented everytime we recurse. In order to perform division, we need to first initialize the quotient to zero, and choose what type of division we want to do (either integer division, or modular division):
+```
+div = λn.λm. (division m n 0) fst
+mod = λn.λm. (division m n 0) snd
+```
+
+We can express `factorial` like so:
+```
+factorial' = λf.λn. (isZero n) 1 (mult n (f (pred n)))
+factorial = Y factorial'
+```
+Lets define a pairwise `min` and `max` function:
+```
+min = λn.λm.(LEQ n m) m n
+max = λn.λm.(GT n m) m n
+```
+If `n` and `m` are equal, it doesn't matter which one we return. Now we can define the `minimum` and `maximum` values of a list:
+
+```
+minimum' = λf.λn.λlist. (isNil list) n (f (min n (head list)) (tail list))
+minimum = λlist. (Y minimum') (head list) (tail list)
+
+maximum' = λf.λn.λlist. (isNil list) n (f (max n (head list)) (tail list))
+maximum = λlist. (Y maximum') (head list) (tail list)
+```
+
+
 ### Infinite Data Structures and 'lazy evaluation'
 
-We might also want functions that generate infinite lists.
--- talk about sets too.
+We can use functions to model things which are usually infinite. Take the idea of a set for instance. A set is a collection of items. There are a few operations defined on sets, such as `union` and `intersection`, which correspond to combining sets in various ways. There is also a proposition defined on sets called `membership`, where we say that `x ∈ A` signifies that "x is a member of A". We might be worried that the set A could be infinite, take for instance, the set of even numbers `Evens`. How could we represent these sets as functions? Well ultimately any judgement we might make about sets boils down to membership. We can represent this as a function from potential members to a boolean, indicating whether or not some value is a member or not:
+```
+emptySet = λx.false
+```
+Nothing is a member of the empty set. But what about the evens?
+```
+evens = λx.Eq 0 (mod x 2)
+```
+We can also combine sets:
+```
+union = λa.λb.λx.or (a x) (b x)
+intersection = λa.λb.λx.and (a x) (b x)
+```
+We can now define arbitrary sets using the union and emptySet:
+```
+{1,3,5} = union 1 (union 2 (union 3 emptySet)) 
+```
+
+Let's define infinite lists. Obviously we can't write out a list that goes on forever, but we can create a function that generates new values recursively. lets create a function that generates an infinite list of natural numbers
+
+```
+Nats' = λf.λx. cons x (f (succ x))
+Nats = Y Nats' 0
+```
+We would normally run into a problem if we tried to Compute `Nats` on it's own:
+```
+Nats = 0 : 1 : 2 : 3 : 4 : ...
+```
+Instead, we need a function that will recurse only a fixed amount:
+```
+take' = (λf.λx.λlist.(isZero x) nil (cons (head list) (f (pred x) (tail list))))
+take = Y take'
+```
+This function would `take` only `n` elements from the beginning of the list. Up to this point I have taught you only one way to reduce expressions. I have told you to only evaluate the left most expressions, and not to worry about simplifying an expression before applying it as an argument to  another expression. This approach is called __lazy evaluation__, and any functional programming language worth its salt uses this. If on the other hand, we required that we simplified expressions before putting them into our functions, our infinite expressions wouldn't work. We be asking for someone to simplify the Nats function, which would never terminate. This alternative to lazy evaluation is called __eager evaluation__, and can sometimes improve the performance of our programs. It can also be restrictive, and prevent us from expressing infinite lists or other infinite structures so well.
+
+So if we wanted the first 3 numbers:
+
+```
+take 3 Nats 
+ = Y take' 3 Nats
+ = (λx. take' (x x))(λx. take' (x x)) 3 Nats
+ = take' take 3 Nats
+ = (λf.λx.λlist.(isZero x) nil (cons (head list) (f (pred x) (tail list)))) take 3 nats
+ = (isZero 3) nil (cons (head nats) (take (pred 3) (tail nats)))
+ = (cons (head nats) (take (pred 3) (tail nats)))
+ = ((head nats) : (take (pred 3) (tail nats)))
+ = (((λlist. list fst) nats) : (take (pred 3) (tail nats)))
+ = (((λlist. list fst) 0: Y nats' 1) : (take (pred 3) (tail nats)))
+ = (0 : (take (pred 3) (tail nats)))
+ = (0 : (take 2 (tail nats)))
+ = (0 : 1 : (take 1 (tail (tail nats))))
+ = 0 : 1 : 2 : (take 0 (tail (tail (tail nats))))
+ = 0 : 1 : 2 : []
+ = [0,1,2]
+```
+### Higher Order functions
+
+Most of the functions that you might deal with don't necesarily have to be higher order. If you restrict yourself to working with particular types linke booleans and integers, then functions such as addition, subtraction, list operations, etc. only make sense in context of those types. Higher order functions are only needed when you either have to deal with everything being represented as a function (such is the case in the untyped lambda calculus), or when dealing with functions that operate on other functions. Here are some examples of functions that are inherently higher order:
+
+#### The Map Function
+
+`Map` takes a function and a list, and applies the function to each element of the list. An example execution might be as follows:
+```
+  map succ [1,2,3] = [2,3,4]
+``` 
+Here's one way to define the `map` function:
+```
+map = Y (λr.λf.λlist.(isNil list) nil (cons (f (head list)) (r (tail list))))
+```
+As we manipulate lists, the `map` function becomes quite useful. Let's look at two other kinds of higher order functions:
+
+#### Folds
+
+A fold takes a starting value, and applies it with the input.
+
+### Back to Our Original Prime Number Conundrum
+
+In the first chapter, I asked for a procedure that produced prime numbers. We can create such a procedure using some facts about number theory:
+* Two numbers are relatively prime if they share no common factors. In other words, their greatest common factor (GCD) is 1.
+* A prime number is a number that is relatively prime to every number below it.
+* The `GCD(x , y) = GCD (x , rem(x, y))`
+
+We can write a recursive function that calculates the GCD of two numbers using the  Euclidean Algorithm:
+```
+GCD' = λf.λa.λb. (isZero b) a (f b (mod a b))
+GCD = Y GCD'
+```
+
+let's now consider a predicate that decides if some number is prime:
+```
+isPrime = λn.  (take (pred n) nats)
+```
+
